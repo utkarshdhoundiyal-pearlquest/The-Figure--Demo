@@ -11,6 +11,9 @@ Repository: <https://github.com/utkarshdhoundiyal-pearlquest/The-Figure--Demo>
 - Camera support for mobile, tablet, laptop, and desktop browsers
 - Live Lucy Virtual Try-On 3.6 streaming when a Decart API key is configured
 - Camera-only fallback mode when the AI service is not configured
+- Zero-credit camera preview before the visitor explicitly starts AI
+- One 15-second standard-mode AI demo per fitting-room visit (about 30 Decart credits maximum)
+- Automatic AI disconnect when the timer ends, the user stops it, the stream errors, or the tab is hidden
 - Live outfit switching without restarting the session
 - Photo capture, JPG download, and a print-friendly sticker sheet
 - Responsive layouts for retail kiosks and personal devices
@@ -33,7 +36,7 @@ Open the local URL printed by the development server. Camera access requires loc
 3. Set `DECART_API_KEY` in `.env.local`.
 4. Restart the development server.
 
-The permanent key is used only by `app/api/realtime-token/route.ts`. The browser receives a short-lived token restricted to `lucy-vton-3.6`, the current origin, and a 90-second realtime session. Never expose the permanent key in client-side code.
+The permanent key is used only by `app/api/realtime-token/route.ts`. The browser receives a 30-second token restricted to `lucy-vton-3.6`, the current origin, and a server-enforced 18-second realtime ceiling. The UI stops generation after 15 seconds or immediately after the photo. Never expose the permanent key in client-side code.
 
 Without a key, the entire selection, camera, capture, download, and print flow still works in preview mode; only the AI garment transformation is disabled.
 
@@ -61,4 +64,4 @@ OpenRouter is not required. The browser connects to Lucy through Decart's JavaSc
 
 This repository intentionally does not enable Vercel Analytics, Speed Insights, Image Optimization, cron jobs, storage, databases, AI Gateway, or Marketplace integrations. The page itself is statically generated and remote garment images bypass Vercel Image Optimization.
 
-The only dynamic Vercel resource is `/api/realtime-token`, a small Function required to keep the permanent Decart key secret. It runs once when a visitor starts a try-on session and has a 10-second maximum duration. Function requests, builds, edge requests, and bandwidth are metered by Vercel and can exceed the Pro plan's included credit under heavy use; repository code alone cannot guarantee a zero-dollar overage. Configure Vercel Spend Management if the team must automatically pause deployments before on-demand spend grows.
+The only dynamic Vercel resource is `/api/realtime-token`, a small Function required to keep the permanent Decart key secret. It is not called when the page or camera preview opens; it runs only when a visitor deliberately starts the capped AI demo and has a 5-second maximum duration. Function requests, builds, edge requests, and bandwidth are still metered by Vercel, so repository code alone cannot guarantee literal zero usage or a zero-dollar overage. Configure Vercel Spend Management with an automatic pause action if the team must enforce a hard spending limit.

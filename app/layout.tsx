@@ -3,8 +3,11 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "The Figure — AI Fitting Room",
-  description:
-    "Choose your looks, try them on live with Lucy AI, and turn the result into a photo or sticker print.",
+  description: "Choose an outfit, take a photo, and print your look.",
+  robots: {
+    index: false,
+    follow: false,
+  },
   icons: {
     icon: "/favicon.svg",
     shortcut: "/favicon.svg",

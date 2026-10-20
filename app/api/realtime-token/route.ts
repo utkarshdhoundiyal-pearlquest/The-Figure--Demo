@@ -3,7 +3,7 @@ import { createDecartClient } from "@decartai/sdk";
 export const dynamic = "force-dynamic";
 // Token creation normally completes quickly. A short ceiling prevents a stuck
 // upstream request from consuming function time for Vercel's 300-second default.
-export const maxDuration = 10;
+export const maxDuration = 5;
 
 export async function POST(request: Request) {
   const requestUrl = new URL(request.url);
@@ -24,10 +24,10 @@ export async function POST(request: Request) {
   try {
     const serverClient = createDecartClient({ apiKey });
     const token = await serverClient.tokens.create({
-      expiresIn: 120,
+      expiresIn: 30,
       allowedModels: ["lucy-vton-3.6"],
       allowedOrigins: [requestUrl.origin],
-      constraints: { realtime: { maxSessionDuration: 90 } },
+      constraints: { realtime: { maxSessionDuration: 18 } },
       metadata: { experience: "the-figure-demo" },
     });
 

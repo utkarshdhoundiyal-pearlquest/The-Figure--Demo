@@ -5,17 +5,11 @@ import {
   ArrowRight,
   Camera,
   Check,
-  ChevronRight,
-  CircleStop,
-  Download,
-  Images,
   LoaderCircle,
-  LockKeyhole,
   Maximize2,
+  Play,
   Printer,
-  Sparkles,
-  WandSparkles,
-  X,
+  RotateCcw,
 } from "lucide-react";
 import type { RealTimeClient } from "@decartai/sdk";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -55,7 +49,7 @@ const OUTFITS: Outfit[] = [
       "Replace the person's clothes with the blue denim jacket from the reference image, preserving their identity, body shape, pose, and background.",
     image:
       "https://api-onboarding.decart.ai/prompt-gallery/try-ons/denim-jacket.webp",
-    accent: "#4e67ff",
+    accent: "#6f83ff",
   },
   {
     id: "desert-suede",
@@ -66,7 +60,7 @@ const OUTFITS: Outfit[] = [
       "Replace the person's clothes with the warm suede jacket from the reference image, preserving their identity, body proportions, pose, and background.",
     image:
       "https://api-onboarding.decart.ai/prompt-gallery/try-ons/suede-jacket.webp",
-    accent: "#ff825c",
+    accent: "#ef9b78",
   },
   {
     id: "soft-signal",
@@ -77,7 +71,7 @@ const OUTFITS: Outfit[] = [
       "Replace the person's clothes with the fleece zip jacket from the reference image, preserving their face, body, movement, and background.",
     image:
       "https://api-onboarding.decart.ai/prompt-gallery/try-ons/fleece-zip-jacket.webp",
-    accent: "#e6c7ff",
+    accent: "#ddc7ee",
   },
   {
     id: "field-note",
@@ -88,7 +82,7 @@ const OUTFITS: Outfit[] = [
       "Replace the person's clothes with the classic barn jacket from the reference image, preserving their identity, body shape, pose, and background.",
     image:
       "https://api-onboarding.decart.ai/prompt-gallery/try-ons/bree-barn-jacket.webp",
-    accent: "#7bd8a7",
+    accent: "#91cfaa",
   },
   {
     id: "sculpted-noir",
@@ -99,7 +93,7 @@ const OUTFITS: Outfit[] = [
       "Replace the person's clothes with the black lambskin bustier outfit from the reference image, preserving their identity, body proportions, pose, and background.",
     image:
       "https://api-onboarding.decart.ai/prompt-gallery/try-ons/lambskin-bustier.webp",
-    accent: "#d6d0c8",
+    accent: "#cec8c0",
   },
   {
     id: "atelier-stripe",
@@ -110,7 +104,7 @@ const OUTFITS: Outfit[] = [
       "Replace the person's clothes with the oversized striped shirt from the reference image, preserving their face, body shape, pose, and background.",
     image:
       "https://api-onboarding.decart.ai/prompt-gallery/try-ons/oversized-striped-shirt.webp",
-    accent: "#bcd7ec",
+    accent: "#b8d2e5",
   },
   {
     id: "clean-slate",
@@ -121,7 +115,7 @@ const OUTFITS: Outfit[] = [
       "Replace the person's clothes with the sleeveless t-shirt from the reference image, preserving their identity, body proportions, movement, and background.",
     image:
       "https://api-onboarding.decart.ai/prompt-gallery/try-ons/sleeveless-t-shirt.webp",
-    accent: "#f1ede4",
+    accent: "#e9e4da",
   },
   {
     id: "gallery-green",
@@ -132,7 +126,7 @@ const OUTFITS: Outfit[] = [
       "Replace the person's clothes with the green outfit from the reference image, preserving their face, body shape, pose, and background.",
     image:
       "https://api-onboarding.decart.ai/prompt-gallery/try-ons/basic-green.webp",
-    accent: "#a9cf9f",
+    accent: "#a7c99f",
   },
   {
     id: "solar-basic",
@@ -143,11 +137,12 @@ const OUTFITS: Outfit[] = [
       "Replace the person's clothes with the yellow outfit from the reference image, preserving their identity, body proportions, pose, and background.",
     image:
       "https://api-onboarding.decart.ai/prompt-gallery/try-ons/basic-yellow.webp",
-    accent: "#f3dd65",
+    accent: "#e9d261",
   },
 ];
 
 const MODEL_NAME = "lucy-vton-3.6";
+const AI_DEMO_SECONDS = 15;
 
 function requestCamera(constraints: MediaStreamConstraints) {
   return new Promise<MediaStream>((resolve, reject) => {
@@ -185,50 +180,76 @@ export default function Home() {
   const [status, setStatus] = useState<
     "idle" | "camera" | "connecting" | "live" | "preview" | "error"
   >("idle");
-  const [message, setMessage] = useState("Choose 2–3 looks to begin");
+  const [message, setMessage] = useState("Choose outfit");
   const [captures, setCaptures] = useState<Capture[]>([]);
   const [printReady, setPrintReady] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const [aiSecondsLeft, setAiSecondsLeft] = useState(AI_DEMO_SECONDS);
+  const [aiDemoUsed, setAiDemoUsed] = useState(false);
+  const [showInstructions, setShowInstructions] = useState(false);
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const outputVideoRef = useRef<HTMLVideoElement>(null);
   const sessionRef = useRef<RealTimeClient | null>(null);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const aiTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const selectedOutfits = useMemo(
     () => selectedIds.map((id) => OUTFITS.find((look) => look.id === id)!),
     [selectedIds],
   );
   const activeOutfit = selectedOutfits[activeIndex] ?? selectedOutfits[0];
+  const latestCapture = captures.at(-1);
 
   const showToast = useCallback((text: string) => {
     if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
     setToast(text);
-    toastTimerRef.current = setTimeout(() => setToast(null), 3200);
+    toastTimerRef.current = setTimeout(() => setToast(null), 2400);
+  }, []);
+
+  const stopLucy = useCallback((reason = "Ready") => {
+    if (aiTimerRef.current) {
+      clearInterval(aiTimerRef.current);
+      aiTimerRef.current = null;
+    }
+    const session = sessionRef.current;
+    sessionRef.current = null;
+    session?.disconnect();
+    if (outputVideoRef.current) outputVideoRef.current.srcObject = null;
+    setAiSecondsLeft(0);
+    setStatus((current) => (current === "idle" || current === "error" ? current : "preview"));
+    setMessage(reason);
   }, []);
 
   const stopSession = useCallback(() => {
-    sessionRef.current?.disconnect();
-    sessionRef.current = null;
+    stopLucy();
     cameraStream?.getTracks().forEach((track) => track.stop());
     setCameraStream(null);
     if (localVideoRef.current) localVideoRef.current.srcObject = null;
-    if (outputVideoRef.current) outputVideoRef.current.srcObject = null;
     setStatus("idle");
-  }, [cameraStream]);
+  }, [cameraStream, stopLucy]);
 
   useEffect(() => {
     return () => {
       sessionRef.current?.disconnect();
       cameraStream?.getTracks().forEach((track) => track.stop());
       if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+      if (aiTimerRef.current) clearInterval(aiTimerRef.current);
     };
   }, [cameraStream]);
+
+  useEffect(() => {
+    const pauseHiddenSession = () => {
+      if (document.hidden && sessionRef.current) stopLucy("Paused");
+    };
+    document.addEventListener("visibilitychange", pauseHiddenSession);
+    return () => document.removeEventListener("visibilitychange", pauseHiddenSession);
+  }, [stopLucy]);
 
   const toggleOutfit = (id: string) => {
     setSelectedIds((current) => {
       if (current.includes(id)) return current.filter((item) => item !== id);
       if (current.length === 3) {
-        showToast("Three looks is the maximum for this demo");
+        showToast("Choose up to three");
         return current;
       }
       return [...current, id];
@@ -240,12 +261,9 @@ export default function Home() {
     const client = createDecartClient({
       apiKeyProvider: async () => {
         const response = await fetch("/api/realtime-token", { method: "POST" });
-        const payload = (await response.json()) as {
-          apiKey?: string;
-          error?: string;
-        };
+        const payload = (await response.json()) as { apiKey?: string; error?: string };
         if (!response.ok || !payload.apiKey) {
-          throw new Error(payload.error ?? "Decart token unavailable");
+          throw new Error(payload.error ?? "Try-on unavailable");
         }
         return payload.apiKey;
       },
@@ -262,11 +280,10 @@ export default function Home() {
       onConnectionChange: (nextStatus) => {
         if (nextStatus === "connected" || nextStatus === "generating") {
           setStatus("live");
-          setMessage("Lucy AI is styling you live");
+          setMessage("Live");
         }
-        if (nextStatus === "reconnecting") {
-          setMessage("Reconnecting the AI fitting room…");
-        }
+        if (nextStatus === "reconnecting") setMessage("Starting");
+        if (nextStatus === "disconnected" && sessionRef.current) stopLucy("Paused");
       },
       onRemoteStream: (transformedStream) => {
         if (outputVideoRef.current) {
@@ -274,27 +291,32 @@ export default function Home() {
           void outputVideoRef.current.play();
         }
         setStatus("live");
-        setMessage("Lucy AI is styling you live");
+        setMessage("Live");
       },
     });
 
     session.on("error", (error) => {
-      console.error("Decart realtime error", error);
-      setMessage("AI stream paused — your camera preview is still available");
+      console.error("Try-on stream error", error);
+      stopLucy("Try again");
     });
     sessionRef.current = session;
   };
 
-  const startTryOn = async () => {
-    if (selectedOutfits.length < 2) {
-      showToast("Choose at least two outfits first");
+  const startCamera = async () => {
+    if (!selectedOutfits.length) {
+      showToast("Choose an outfit");
       return;
     }
 
     setStage("studio");
     setStatus("camera");
-    setMessage("Waiting for camera permission…");
+    setMessage("Opening camera");
     setActiveIndex(0);
+    setCaptures([]);
+    setPrintReady(false);
+    setAiDemoUsed(false);
+    setAiSecondsLeft(AI_DEMO_SECONDS);
+    setShowInstructions(false);
 
     try {
       const { models } = await import("@decartai/sdk");
@@ -313,22 +335,45 @@ export default function Home() {
         localVideoRef.current.srcObject = stream;
         await localVideoRef.current.play();
       }
-
-      setStatus("connecting");
-      setMessage("Connecting to Lucy Virtual Try-On…");
-      try {
-        await connectLucy(stream, selectedOutfits[0]);
-      } catch (error) {
-        console.info("Starting camera-only preview", error);
-        setStatus("preview");
-        setMessage("Demo preview — add DECART_API_KEY to enable live AI");
-        showToast("Camera is on. Live AI needs a Decart API key.");
-      }
+      setStatus("preview");
+      setMessage("Ready");
+      setShowInstructions(true);
     } catch (error) {
       console.info("Camera unavailable", error);
       setStatus("error");
-      setMessage("Camera access was blocked or is unavailable");
-      showToast("Please allow camera access and try again");
+      setMessage("Camera unavailable");
+    }
+  };
+
+  const startTryOn = async () => {
+    if (!cameraStream || !activeOutfit || aiDemoUsed || status === "connecting") return;
+
+    setShowInstructions(false);
+    setStatus("connecting");
+    setMessage("Starting");
+    setAiSecondsLeft(AI_DEMO_SECONDS);
+
+    try {
+      await connectLucy(cameraStream, activeOutfit);
+      setAiDemoUsed(true);
+      setStatus("live");
+      setMessage("Live");
+      let remaining = AI_DEMO_SECONDS;
+      if (aiTimerRef.current) clearInterval(aiTimerRef.current);
+      aiTimerRef.current = setInterval(() => {
+        remaining -= 1;
+        setAiSecondsLeft(Math.max(remaining, 0));
+        if (remaining <= 0) {
+          stopLucy("Time complete");
+          showToast("Session complete");
+        }
+      }, 1000);
+    } catch (error) {
+      console.info("Try-on unavailable", error);
+      setStatus("preview");
+      setMessage("Try again");
+      setShowInstructions(true);
+      showToast("Please try again");
     }
   };
 
@@ -336,7 +381,6 @@ export default function Home() {
     const nextOutfit = selectedOutfits[index];
     if (!nextOutfit) return;
     setActiveIndex(index);
-    setMessage(`Loading ${nextOutfit.name}…`);
     if (sessionRef.current) {
       try {
         await sessionRef.current.set({
@@ -344,13 +388,10 @@ export default function Home() {
           image: nextOutfit.image,
           enhance: true,
         });
-        setMessage(`Now wearing ${nextOutfit.name}`);
       } catch (error) {
         console.error("Outfit switch failed", error);
-        setMessage("That look could not load — try again");
+        showToast("Try another outfit");
       }
-    } else {
-      setMessage(`Previewing ${nextOutfit.name}`);
     }
   };
 
@@ -362,219 +403,103 @@ export default function Home() {
 
   const capturePhoto = () => {
     const output = outputVideoRef.current;
-    const local = localVideoRef.current;
-    const source = output?.srcObject ? output : local;
-    if (!source || !source.videoWidth || !source.videoHeight) {
-      showToast("The camera is still warming up");
+    if (!output?.srcObject || !output.videoWidth || !output.videoHeight) {
+      showToast("Hold still for a moment");
       return;
     }
 
     const canvas = document.createElement("canvas");
-    canvas.width = source.videoWidth;
-    canvas.height = source.videoHeight;
+    canvas.width = output.videoWidth;
+    canvas.height = output.videoHeight;
     const context = canvas.getContext("2d");
     if (!context) return;
-    if (source === local) {
-      context.translate(canvas.width, 0);
-      context.scale(-1, 1);
-    }
-    context.drawImage(source, 0, 0, canvas.width, canvas.height);
-    const dataUrl = canvas.toDataURL("image/jpeg", 0.94);
-    setCaptures((current) => [
-      ...current,
-      { dataUrl, outfitName: activeOutfit?.name ?? "The Figure look" },
-    ]);
+    context.drawImage(output, 0, 0, canvas.width, canvas.height);
+    const dataUrl = canvas.toDataURL("image/jpeg", 0.9);
+    setCaptures([{ dataUrl, outfitName: activeOutfit?.name ?? "The Figure" }]);
     setPrintReady(true);
-    showToast("Shot saved — your print is ready");
+    stopLucy("Ready to print");
+    showToast("Photo ready");
   };
 
-  const downloadLatest = () => {
-    const capture = captures.at(-1);
-    if (!capture) return;
-    const link = document.createElement("a");
-    link.href = capture.dataUrl;
-    link.download = `the-figure-${capture.outfitName.toLowerCase().replaceAll(" ", "-")}.jpg`;
-    link.click();
-  };
-
-  const printShots = () => {
+  const printPhoto = () => {
     if (!captures.length) {
       showToast("Take a photo first");
       return;
     }
     setPrintReady(true);
-    showToast("Print layout ready");
-    setTimeout(() => window.print(), 180);
+    setTimeout(() => window.print(), 120);
   };
 
   const resetExperience = () => {
     stopSession();
     setStage("select");
+    setSelectedIds([]);
     setCaptures([]);
     setPrintReady(false);
-    setMessage("Choose 2–3 looks to begin");
+    setAiDemoUsed(false);
+    setAiSecondsLeft(AI_DEMO_SECONDS);
+    setShowInstructions(false);
+    setMessage("Choose outfit");
   };
 
   return (
-    <main>
-      <header className="site-header">
-        <a className="wordmark" href="#top" aria-label="The Figure home">
-          THE FIGURE<span>®</span>
-        </a>
-        <nav aria-label="Primary navigation">
-          <a href="#collection">Looks</a>
-          <a href="#how-it-works">How it works</a>
-        </nav>
-        <div className="header-status">
-          <span className="live-dot" /> AI fitting room
-        </div>
-      </header>
+    <main className="kiosk-app">
+      {stage === "select" ? (
+        <section className="choose-screen" aria-labelledby="choose-title">
+          <div className="choose-heading">
+            <h1 id="choose-title">Choose outfit</h1>
+          </div>
 
-      <section id="top" className="hero">
-        <div className="hero-copy">
-          <div className="eyebrow"><Sparkles size={14} /> Lucy AI × Decart</div>
-          <h1>
-            Your body.
-            <br />
-            <em>Every</em> possibility.
-          </h1>
-          <p>
-            Build a three-look capsule, step in front of your camera, and watch
-            each outfit move with you in real time.
-          </p>
-          <a className="hero-cta" href="#collection">
-            Try new outfits <ArrowRight size={18} />
-          </a>
-        </div>
-        <div className="hero-visual" aria-label="The Figure virtual styling preview">
-          <div className="hero-orbit orbit-one" />
-          <div className="hero-orbit orbit-two" />
-          <div className="hero-silhouette">
-            <span className="silhouette-head" />
-            <span className="silhouette-body" />
-            <span className="scan-line" />
-          </div>
-          <div className="look-label look-label-one">
-            <span>LOOK 02</span>
-            City Blue
-          </div>
-          <div className="look-label look-label-two">
-            <span>LIVE FIT</span>
-            MOVES WITH YOU
-          </div>
-          <div className="hero-index">TF / 001</div>
-        </div>
-      </section>
-
-      <section id="collection" className="collection-section">
-        <div className="section-heading">
-          <div>
-            <span className="section-kicker">01 / CURATE</span>
-            <h2>Choose your lineup.</h2>
-          </div>
-          <p>
-            Pick <strong>2–3 outfits</strong>. You can switch between them live
-            once your camera starts.
-          </p>
-        </div>
-
-        <div className="outfit-grid">
-          {OUTFITS.map((outfit) => {
-            const isSelected = selectedIds.includes(outfit.id);
-            return (
-              <button
-                type="button"
-                className={`outfit-card ${isSelected ? "selected" : ""}`}
-                key={outfit.id}
-                onClick={() => toggleOutfit(outfit.id)}
-                aria-pressed={isSelected}
-              >
-                <span className="outfit-number">{outfit.number}</span>
-                <span className="outfit-check">
-                  {isSelected ? <Check size={18} /> : <span>+</span>}
-                </span>
-                <span className="outfit-image-wrap" style={{ background: outfit.accent }}>
-                  <img src={outfit.image} alt={outfit.category} loading="lazy" />
-                </span>
-                <span className="outfit-meta">
-                  <span>
-                    <strong>{outfit.name}</strong>
-                    <small>{outfit.category}</small>
-                  </span>
-                  <ChevronRight size={18} />
-                </span>
-              </button>
-            );
-          })}
-        </div>
-
-        <div className={`selection-dock ${selectedIds.length ? "visible" : ""}`}>
-          <div className="selection-copy">
-            <span>{selectedIds.length}/3 selected</span>
-            <strong>
-              {selectedIds.length < 2
-                ? `Choose ${2 - selectedIds.length} more`
-                : "Your fitting room is ready"}
-            </strong>
-          </div>
-          <div className="selected-thumbs" aria-label="Selected outfits">
-            {[0, 1, 2].map((slot) => {
-              const outfit = selectedOutfits[slot];
-              return outfit ? (
+          <div className="outfit-grid">
+            {OUTFITS.map((outfit) => {
+              const isSelected = selectedIds.includes(outfit.id);
+              return (
                 <button
-                  key={outfit.id}
                   type="button"
+                  className={`outfit-card ${isSelected ? "selected" : ""}`}
+                  key={outfit.id}
                   onClick={() => toggleOutfit(outfit.id)}
-                  aria-label={`Remove ${outfit.name}`}
+                  aria-label={`${isSelected ? "Remove" : "Choose"} ${outfit.name}`}
+                  aria-pressed={isSelected}
                 >
-                  <img src={outfit.image} alt="" />
-                  <X size={12} />
+                  <span className="outfit-image" style={{ background: outfit.accent }}>
+                    <img src={outfit.image} alt={outfit.category} loading="lazy" />
+                  </span>
+                  <span className="outfit-name">{outfit.name}</span>
+                  <span className="outfit-check" aria-hidden="true">
+                    {isSelected ? <Check size={20} strokeWidth={3} /> : outfit.number}
+                  </span>
                 </button>
-              ) : (
-                <span key={slot} className="empty-slot">{slot + 1}</span>
               );
             })}
           </div>
-          <button
-            className="start-button"
-            type="button"
-            disabled={selectedIds.length < 2}
-            onClick={startTryOn}
-          >
-            Start try-on <Camera size={18} />
-          </button>
-        </div>
-      </section>
 
-      <section
-        className={`studio-section ${stage === "studio" ? "is-open" : ""}`}
-        aria-hidden={stage !== "studio"}
-      >
-        <div className="studio-topbar">
-          <button type="button" onClick={resetExperience}>
-            <ArrowLeft size={17} /> Back to looks
-          </button>
-          <div className="studio-status">
-            <span className={`status-light ${status}`} /> {message}
+          <div className={`selection-bar ${selectedIds.length ? "visible" : ""}`}>
+            <span>{selectedIds.length} selected</span>
+            <button type="button" onClick={startCamera} disabled={!selectedIds.length}>
+              Start <Play size={20} fill="currentColor" />
+            </button>
           </div>
-          <span>Session 01</span>
-        </div>
+        </section>
+      ) : (
+        <section className="studio-screen" aria-label="Photo studio">
+          <button className="back-button" type="button" onClick={resetExperience} aria-label="Choose another outfit">
+            <ArrowLeft size={24} />
+          </button>
 
-        <div className="studio-layout">
-          <aside className="studio-rail">
-            <span className="rail-label">YOUR LOOKS</span>
+          <div className="look-strip" aria-label="Selected outfits">
             {selectedOutfits.map((outfit, index) => (
               <button
                 type="button"
                 key={outfit.id}
                 className={index === activeIndex ? "active" : ""}
                 onClick={() => void changeOutfit(index)}
+                aria-label={`Try ${outfit.name}`}
               >
                 <img src={outfit.image} alt="" />
-                <span>{String(index + 1).padStart(2, "0")}</span>
               </button>
             ))}
-          </aside>
+          </div>
 
           <div className="camera-stage">
             <video
@@ -591,107 +516,111 @@ export default function Home() {
               muted
               playsInline
             />
+
+            {latestCapture && status === "preview" && (
+              <img className="capture-preview" src={latestCapture.dataUrl} alt="Your captured look" />
+            )}
+
             {(status === "camera" || status === "connecting") && (
-              <div className="camera-loading">
-                <LoaderCircle className="spin" size={36} />
-                <strong>{status === "camera" ? "Opening camera" : "Styling your first look"}</strong>
-                <span>This normally takes a few seconds.</span>
+              <div className="center-overlay loading-overlay" role="status">
+                <LoaderCircle className="spin" size={42} />
+                <strong>{message}</strong>
               </div>
             )}
+
             {status === "error" && (
-              <div className="camera-loading error-state">
-                <Camera size={34} />
-                <strong>We can’t see you yet</strong>
-                <span>Allow camera access in your browser, then try again.</span>
-                <button type="button" onClick={startTryOn}>Try camera again</button>
+              <div className="center-overlay error-overlay">
+                <Camera size={38} />
+                <strong>Camera unavailable</strong>
+                <button type="button" onClick={startCamera}>Try again</button>
               </div>
             )}
-            <div className="camera-chrome">
-              <div className="ai-badge">
-                <WandSparkles size={14} />
-                {status === "live" ? "LUCY AI · LIVE" : "CAMERA PREVIEW"}
+
+            {showInstructions && status === "preview" && !latestCapture && (
+              <div className="center-overlay instruction-overlay">
+                <div className="instruction-card">
+                  <span>Before your photo</span>
+                  <h2>Stand in the frame.<br />Face the camera.<br />Hold still.</h2>
+                  <button type="button" onClick={startTryOn}>
+                    I&apos;m ready <Play size={20} fill="currentColor" />
+                  </button>
+                </div>
               </div>
-              <button type="button" aria-label="Full screen" onClick={() => document.documentElement.requestFullscreen?.()}>
-                <Maximize2 size={17} />
-              </button>
-            </div>
-            <div className="active-look-label">
-              <span>NOW TRYING</span>
-              <strong>{activeOutfit?.name}</strong>
-            </div>
-            <div className="camera-arrows">
-              <button type="button" onClick={() => cycleOutfit(-1)} aria-label="Previous outfit">
-                <ArrowLeft size={19} />
-              </button>
-              <button type="button" onClick={() => cycleOutfit(1)} aria-label="Next outfit">
-                <ArrowRight size={19} />
-              </button>
-            </div>
+            )}
+
+            {status === "preview" && aiDemoUsed && !latestCapture && !showInstructions && (
+              <div className="center-overlay complete-overlay">
+                <strong>Try again</strong>
+                <button type="button" onClick={resetExperience}>Choose outfit</button>
+              </div>
+            )}
+
+            <button
+              type="button"
+              className="fullscreen-button"
+              aria-label="Full screen"
+              onClick={() => document.documentElement.requestFullscreen?.()}
+            >
+              <Maximize2 size={21} />
+            </button>
+
+            {status === "live" && <div className="session-timer">{aiSecondsLeft}</div>}
+
+            <div className="active-look">{activeOutfit?.name}</div>
+
+            {selectedOutfits.length > 1 && status === "live" && (
+              <div className="camera-arrows">
+                <button type="button" onClick={() => cycleOutfit(-1)} aria-label="Previous outfit">
+                  <ArrowLeft size={22} />
+                </button>
+                <button type="button" onClick={() => cycleOutfit(1)} aria-label="Next outfit">
+                  <ArrowRight size={22} />
+                </button>
+              </div>
+            )}
           </div>
 
           <aside className="studio-actions">
-            <div className="action-heading">
-              <span>CAPTURE</span>
-              <strong>Make it yours.</strong>
-            </div>
-            <button className="capture-button" type="button" onClick={capturePhoto}>
-              <span><Camera size={26} /></span>
-              Take photo
+            <button
+              className="photo-button"
+              type="button"
+              onClick={capturePhoto}
+              disabled={status !== "live"}
+            >
+              <Camera size={28} />
+              Photo
             </button>
-            <button type="button" onClick={downloadLatest} disabled={!captures.length}>
-              <Download size={18} /> Save latest
+            <button
+              className="print-button"
+              type="button"
+              onClick={printPhoto}
+              disabled={!captures.length}
+            >
+              <Printer size={28} />
+              Print
             </button>
-            <button type="button" onClick={printShots} disabled={!captures.length}>
-              <Printer size={18} /> Print stickers
-            </button>
-            <div className="capture-count">
-              <Images size={16} /> {captures.length} shot{captures.length === 1 ? "" : "s"} saved
-            </div>
-            <div className="privacy-note">
-              <LockKeyhole size={16} />
-              <p><strong>Private by design.</strong> Camera frames are used for your live session and aren’t stored by this demo.</p>
-            </div>
-            <button className="end-session" type="button" onClick={resetExperience}>
-              <CircleStop size={17} /> End session
+            <button className="restart-button" type="button" onClick={resetExperience}>
+              <RotateCcw size={20} />
+              Start over
             </button>
           </aside>
-        </div>
-      </section>
 
-      <section id="how-it-works" className="how-section">
-        <div className="section-heading inverse">
-          <div>
-            <span className="section-kicker">02 / THE MAGIC</span>
-            <h2>From camera to keepsake.</h2>
-          </div>
-          <p>One playful flow, designed for a retail kiosk or any personal device.</p>
-        </div>
-        <div className="steps-grid">
-          <article><span>01</span><Camera size={30} /><h3>Step into frame</h3><p>Works with the browser camera on phones, tablets, laptops, and desktops.</p></article>
-          <article><span>02</span><WandSparkles size={30} /><h3>Lucy styles live</h3><p>Decart’s virtual try-on model transforms the video stream while you move.</p></article>
-          <article><span>03</span><Printer size={30} /><h3>Take it with you</h3><p>Capture a favorite look, save the photo, or print a branded sticker sheet.</p></article>
-        </div>
-      </section>
+          <span className="sr-only" aria-live="polite">{message}</span>
+        </section>
+      )}
 
-      <footer>
-        <a className="wordmark" href="#top">THE FIGURE<span>®</span></a>
-        <p>AN EXPERIMENT IN SEEING YOURSELF DIFFERENTLY.</p>
-        <span>Powered by Lucy Virtual Try-On</span>
-      </footer>
-
-      {toast && <div className="toast" role="status"><Check size={16} /> {toast}</div>}
+      {toast && <div className="toast" role="status"><Check size={18} /> {toast}</div>}
 
       <div className={`print-sheet ${printReady ? "ready" : ""}`} aria-hidden="true">
         <div className="print-brand">THE FIGURE®</div>
         <div className="print-grid">
-          {(captures.length ? captures.slice(-3) : []).map((capture, index) => (
+          {captures.map((capture, index) => (
             <figure key={`${capture.outfitName}-${index}`}>
               <img src={capture.dataUrl} alt="" />
-              <figcaption>{capture.outfitName}<span>THE FIGURE / LOOK {String(index + 1).padStart(2, "0")}</span></figcaption>
+              <figcaption>{capture.outfitName}</figcaption>
             </figure>
           ))}
         </div>
-        <p>Cut along the dotted line · Made with Lucy AI × Decart</p>
       </div>
     </main>
   );
