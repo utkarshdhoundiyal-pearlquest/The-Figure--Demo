@@ -2,6 +2,8 @@
 
 A responsive virtual try-on demo for **The Figure**, powered by Decart's Lucy Virtual Try-On model.
 
+Repository: <https://github.com/utkarshdhoundiyal-pearlquest/The-Figure--Demo>
+
 ## What the demo includes
 
 - Five garment presets from Decart's public Lucy prompt gallery
