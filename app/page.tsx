@@ -90,6 +90,61 @@ const OUTFITS: Outfit[] = [
       "https://api-onboarding.decart.ai/prompt-gallery/try-ons/bree-barn-jacket.webp",
     accent: "#7bd8a7",
   },
+  {
+    id: "sculpted-noir",
+    number: "06",
+    name: "Sculpted Noir",
+    category: "Lambskin bustier",
+    prompt:
+      "Replace the person's clothes with the black lambskin bustier outfit from the reference image, preserving their identity, body proportions, pose, and background.",
+    image:
+      "https://api-onboarding.decart.ai/prompt-gallery/try-ons/lambskin-bustier.webp",
+    accent: "#d6d0c8",
+  },
+  {
+    id: "atelier-stripe",
+    number: "07",
+    name: "Atelier Stripe",
+    category: "Oversized shirt",
+    prompt:
+      "Replace the person's clothes with the oversized striped shirt from the reference image, preserving their face, body shape, pose, and background.",
+    image:
+      "https://api-onboarding.decart.ai/prompt-gallery/try-ons/oversized-striped-shirt.webp",
+    accent: "#bcd7ec",
+  },
+  {
+    id: "clean-slate",
+    number: "08",
+    name: "Clean Slate",
+    category: "Sleeveless tee",
+    prompt:
+      "Replace the person's clothes with the sleeveless t-shirt from the reference image, preserving their identity, body proportions, movement, and background.",
+    image:
+      "https://api-onboarding.decart.ai/prompt-gallery/try-ons/sleeveless-t-shirt.webp",
+    accent: "#f1ede4",
+  },
+  {
+    id: "gallery-green",
+    number: "09",
+    name: "Gallery Green",
+    category: "Green essential",
+    prompt:
+      "Replace the person's clothes with the green outfit from the reference image, preserving their face, body shape, pose, and background.",
+    image:
+      "https://api-onboarding.decart.ai/prompt-gallery/try-ons/basic-green.webp",
+    accent: "#a9cf9f",
+  },
+  {
+    id: "solar-basic",
+    number: "10",
+    name: "Solar Basic",
+    category: "Yellow essential",
+    prompt:
+      "Replace the person's clothes with the yellow outfit from the reference image, preserving their identity, body proportions, pose, and background.",
+    image:
+      "https://api-onboarding.decart.ai/prompt-gallery/try-ons/basic-yellow.webp",
+    accent: "#f3dd65",
+  },
 ];
 
 const MODEL_NAME = "lucy-vton-3.6";

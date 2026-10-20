@@ -6,7 +6,7 @@ Repository: <https://github.com/utkarshdhoundiyal-pearlquest/The-Figure--Demo>
 
 ## What the demo includes
 
-- Five garment presets from Decart's public Lucy prompt gallery
+- Ten garment presets from Decart's public Lucy prompt gallery
 - A guided 2–3 outfit selection flow
 - Camera support for mobile, tablet, laptop, and desktop browsers
 - Live Lucy Virtual Try-On 3.6 streaming when a Decart API key is configured
@@ -48,7 +48,7 @@ Configure `DECART_API_KEY` as a server-side secret in the hosting environment be
 
 ## Deploy to Vercel through GitHub only
 
-Production is connected to the private GitHub repository. Do not use `vercel deploy` or upload the source directly.
+Production is connected to the GitHub repository. Do not use `vercel deploy` or upload the source directly.
 
 1. Push changes to the GitHub repository.
 2. Let the Vercel Git integration build the commit.

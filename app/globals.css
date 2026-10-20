@@ -1076,11 +1076,6 @@ footer > span {
     grid-template-columns: repeat(3, 1fr);
   }
 
-  .outfit-card:nth-child(4),
-  .outfit-card:nth-child(5) {
-    grid-column: span 1;
-  }
-
   .studio-layout {
     grid-template-columns: 78px minmax(0, 1fr) 230px;
   }
@@ -1121,13 +1116,6 @@ footer > span {
 
   .outfit-grid {
     grid-template-columns: repeat(2, 1fr);
-  }
-
-  .outfit-card:last-child {
-    grid-column: span 2;
-    margin: 0 auto;
-    max-width: calc(50% - 7px);
-    width: 100%;
   }
 
   .selection-dock {
