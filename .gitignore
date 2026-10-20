@@ -50,7 +50,6 @@ yarn-error.log*
 /cloudflare-env.d.ts
 /components.json
 /drizzle.config.ts
-/pnpm-workspace.yaml
 /vite.config.ts
 
 # Workspace scaffolding and publication archives
