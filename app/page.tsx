@@ -447,6 +447,9 @@ export default function Home() {
       {stage === "select" ? (
         <section className="choose-screen" aria-labelledby="choose-title">
           <div className="choose-heading">
+            <div className="figure-logo" aria-label="The Figure">
+              THE FIGURE<span>®</span>
+            </div>
             <h1 id="choose-title">Choose outfit</h1>
           </div>
 
