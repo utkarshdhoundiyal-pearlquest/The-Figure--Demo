@@ -142,7 +142,7 @@ const OUTFITS: Outfit[] = [
 ];
 
 const MODEL_NAME = "lucy-vton-3.6";
-const AI_DEMO_SECONDS = 15;
+const AI_DEMO_SECONDS = 30;
 
 function requestCamera(constraints: MediaStreamConstraints) {
   return new Promise<MediaStream>((resolve, reject) => {

@@ -24,10 +24,10 @@ export async function POST(request: Request) {
   try {
     const serverClient = createDecartClient({ apiKey });
     const token = await serverClient.tokens.create({
-      expiresIn: 30,
+      expiresIn: 60,
       allowedModels: ["lucy-vton-3.6"],
       allowedOrigins: [requestUrl.origin],
-      constraints: { realtime: { maxSessionDuration: 18 } },
+      constraints: { realtime: { maxSessionDuration: 35 } },
       metadata: { experience: "the-figure-demo" },
     });
 

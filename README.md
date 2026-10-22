@@ -12,7 +12,7 @@ Repository: <https://github.com/utkarshdhoundiyal-pearlquest/The-Figure--Demo>
 - Live Lucy Virtual Try-On 3.6 streaming when a Decart API key is configured
 - Camera-only fallback mode when the AI service is not configured
 - Zero-credit camera preview before the visitor explicitly starts AI
-- One 15-second standard-mode AI demo per fitting-room visit (about 30 Decart credits maximum)
+- One 30-second standard-mode AI demo per fitting-room visit (about 60 Decart credits maximum)
 - Automatic AI disconnect when the timer ends, the user stops it, the stream errors, or the tab is hidden
 - Live outfit switching without restarting the session
 - Photo capture, JPG download, and a print-friendly sticker sheet
@@ -36,7 +36,7 @@ Open the local URL printed by the development server. Camera access requires loc
 3. Set `DECART_API_KEY` in `.env.local`.
 4. Restart the development server.
 
-The permanent key is used only by `app/api/realtime-token/route.ts`. The browser receives a 30-second token restricted to `lucy-vton-3.6`, the current origin, and a server-enforced 18-second realtime ceiling. The UI stops generation after 15 seconds or immediately after the photo. Never expose the permanent key in client-side code.
+The permanent key is used only by `app/api/realtime-token/route.ts`. The browser receives a 60-second token restricted to `lucy-vton-3.6`, the current origin, and a server-enforced 35-second realtime ceiling. The UI stops generation after 30 seconds or immediately after the photo. Never expose the permanent key in client-side code.
 
 Without a key, the entire selection, camera, capture, download, and print flow still works in preview mode; only the AI garment transformation is disabled.
 
